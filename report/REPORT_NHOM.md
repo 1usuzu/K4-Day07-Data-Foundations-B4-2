@@ -12,12 +12,12 @@
 
 ## 1. Lựa chọn tài liệu (Document Set Quality) — Nhóm (10 điểm)
 
-### Chủ đề (Domain) & Lý Do Chọn
+### Phạm vi bộ tài liệu (Scope)
 
-**Chủ đề:** [ví dụ: Customer support FAQ, Luật Việt Nam, công thức nấu ăn, ...]
+**Chủ đề (cố định theo lớp K4):** Chính sách thương mại điện tử / hỗ trợ khách hàng (thanh toán, đổi trả, giao hàng, quyền riêng tư, điều kiện người bán…).
 
-**Tại sao nhóm chọn chủ đề này?**
-> *Viết 2-3 câu:*
+**Phạm vi cụ thể nhóm tập trung:**
+> *1 câu — ví dụ: đổi trả + điều kiện người bán.*
 
 ### Danh sách tài liệu (Data Inventory)
 
