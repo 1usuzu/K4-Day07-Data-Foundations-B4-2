@@ -78,7 +78,7 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 
 > Mỗi thành viên điền một khối dưới đây (copy thêm nếu nhóm có nhiều hơn 3 người).
 
-**Thành viên 1 — Lưu Xuân Dũng**
+**Thành viên 1 — [Lưu Xuân Dũng]**
 - **Loại chiến lược:** RecursiveChunker (chunk_size=300)
 - **Mô tả & lý do chọn cho chủ đề này:** Chọn Recursive vì văn bản chính sách thương mại thường phân cấp theo Heading và các gạch đầu dòng rõ ràng. Việc đệ quy chia theo đoạn và câu giúp bóc tách từng điều khoản tách bạch mà không bị gãy ngữ cảnh.
 - **Code snippet (nếu custom):**
@@ -87,15 +87,90 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 # overlap = 50, max_sentences_per_chunk = 5
 ```
 
-**Thành viên 2 — [Tên]**
-- **Loại chiến lược:**
-- **Mô tả & lý do chọn:**
+**Thành viên 2 — [Ngô Lưu Quốc Đạt]**
+- **Loại chiến lược:** SentenceChunker (`max_sentences_per_chunk=3`, không overlap)
+- **Mô tả & lý do chọn cho chủ đề này:** Văn bản chính sách thương mại được viết theo câu khá chuẩn — mỗi câu thường gói trọn một điều kiện đầy đủ (mức phí, thời hạn, ngoại lệ). Cắt đúng ranh giới câu nên giữ nguyên được cặp *điều kiện → hệ qu, tránh tình trạng `FixedSizeChunker` cắt ngang giữa mệnh đề làm mất con số hoặc mất vế điều kiện. Cấu trúc câu và đoạn văn của nguồn cũng đều đặn nên ranh giới câu là tín hiệu phân đoạn đáng tin cậy hơn cắt theo số ký tự cố định.
+- **Kết quả đo trên corpus thật:** `doi-tra-bao-hanh` 24 chunk (TB 320 ký tự) · `thoa-thuan-mxh` 65 chunk (TB 410 ký tự) · `payment-options` 5 chunk (TB 288 ký tự). Kích thước chunk biến thiên theo độ dài câu thật thay vì bị ép về một con số cố định như `fixed_size`.
+- **Hạn chế đã phát hiện:** regex nhận diện câu cắt sau mọi `.` `!` `?` có khoảng trắng/xuống dòng theo sau, nên số thứ tự của danh sách đánh số bị hiểu nhầm là kết câu. Trên `thoa-thuan-mxh` (văn bản nhiều danh sách đánh số) sinh ra các chunk kết thúc bằng một số lạc lõng, ví dụ `"…xuất bản phẩm bị cấm. 6."` — số `6.` của mục kế tiếp bị kéo vào cuối chunk hiện tại, làm lệch nhóm 3 câu. Hướng khắc phục: thêm điều kiện loại trừ khi ký tự trước dấu chấm chỉ là chữ số.
 - **Code snippet (nếu custom):**
+```python
+# src/dat/chunking.py — SentenceChunker
+# Cắt SAU dấu kết câu (lookbehind) để giữ lại dấu chấm/hỏi/than trong câu.
+_BOUNDARY = re.compile(r"(?<=[.!?])[ \n]+")
 
-**Thành viên 3 — [Tên]**
-- **Loại chiến lược:**
-- **Mô tả & lý do chọn:**
+sentences = [part.strip() for part in self._BOUNDARY.split(text)]
+sentences = [sentence for sentence in sentences if sentence]   # bỏ chuỗi rỗng
+step = self.max_sentences_per_chunk                            # mặc định 3
+return [
+    " ".join(sentences[start : start + step]).strip()
+    for start in range(0, len(sentences), step)
+]
+```
+
+**Thành viên 3 — [Nguyễn Phương Thùy]**
+- **Loại chiến lược:** SentenceChunker **có overlap** (`max_sentences_per_chunk=3`, `overlap_sentences=1` → bước nhảy 2 câu)
+- **Mô tả & lý do chọn cho chủ đề này:** Giữ nguyên ưu điểm cắt theo ranh giới câu của Thành viên 2, nhưng thêm chồng lấn 1 câu giữa hai chunk liền kề để xử lý điểm yếu lớn nhất của bản không overlap: trong văn bản chính sách, điều kiện và ngoại lệ thường nằm ở câu kế tiếp câu quy định mức phí. Ví dụ mục 1.2 nêu "Tháng đầu tiên kể từ ngày mua miễn phí…" rồi câu sau mới là "Lưu ý: Nếu không có sản phẩm chính đổi cho Khách hàng thì áp dụng…". Nếu ranh giới chunk rơi đúng giữa hai câu này, chunk truy xuất được sẽ mất vế ngoại lệ và agent trả lời thiếu. Overlap 1 câu đảm bảo mỗi câu xuất hiện ở hai chunk liên tiếp, nên dù ranh giới rơi vào đâu thì vẫn còn một chunk chứa trọn cặp "quy định + ngoại lệ".
+- **Đánh đổi:** overlap làm tăng số chunk và dung lượng lưu trữ/embedding. Đo trên corpus: `doi-tra-bao-hanh` 24 → **35 chunk** (tổng ký tự lưu 1,39×), `thoa-thuan-mxh` 65 → **97 chunk** (1,47×), `payment-options` 5 → **6 chunk** (1,36×). Đổi lại khoảng 40–50% chi phí embedding để giảm rủi ro mất ngữ cảnh ở ranh giới — với corpus nhỏ (5 tài liệu) thì chi phí này chấp nhận được.
 - **Code snippet (nếu custom):**
+```python
+# src/thuy/chunking.py — SentenceChunker thêm tham số overlap_sentences
+def __init__(self, max_sentences_per_chunk: int = 3, overlap_sentences: int = 1) -> None:
+    self.max_sentences_per_chunk = max(1, max_sentences_per_chunk)
+    # overlap phải nhỏ hơn kích thước cửa sổ, nếu không vòng lặp sẽ không tiến
+    self.overlap_sentences = min(max(0, overlap_sentences), self.max_sentences_per_chunk - 1)
+
+def chunk(self, text: str) -> list[str]:
+    if not text or not text.strip():
+        return []
+    sentences = [p.strip() for p in self._BOUNDARY.split(text)]
+    sentences = [s for s in sentences if s]
+
+    step = self.max_sentences_per_chunk - self.overlap_sentences   # 3 - 1 = 2
+    chunks = []
+    for start in range(0, len(sentences), step):
+        window = sentences[start : start + self.max_sentences_per_chunk]
+        if window:
+            chunks.append(" ".join(window).strip())
+        if start + self.max_sentences_per_chunk >= len(sentences):
+            break        # cửa sổ đã chạm cuối, dừng để không sinh chunk lặp
+    return chunks
+```
+
+**Thành viên 4 — [Nguyễn Thị Huyền Trang]**
+- **Loại chiến lược:** FixedSizeChunker (`chunk_size=500`, `overlap=50` — mặc định trong `src/trang/chunking.py`)
+- **Mô tả & lý do chọn cho chủ đề này:** Đây là chiến lược đơn giản và dễ dự đoán nhất: mọi chunk đều có kích thước gần bằng nhau nên chi phí embedding và độ trễ truy vấn ổn định, không phụ thuộc cách hành văn của từng tài liệu. Corpus của nhóm có độ dài rất chênh lệch (từ 1.451 đến 26.757 ký tự) nhưng `fixed_size` vẫn cho chunk đều nhau, tiện làm **mốc đối chứng (baseline)** để đo xem hai chiến lược cắt theo ngữ nghĩa của Thành viên 2 và 3 thực sự tốt hơn bao nhiêu. Overlap 50 ký tự bù đắp một phần cho việc cắt cứng ở ranh giới.
+- **Kết quả đo trên corpus thật:** `doi-tra-bao-hanh` 18 chunk (TB 476 ký tự) · `thoa-thuan-mxh` 60 chunk (TB 495 ký tự) · `payment-options` 4 chunk (TB 400 ký tự). Số chunk **ít nhất** trong ba chiến lược, độ dài trung bình bám sát `chunk_size` — đúng như kỳ vọng.
+- **Hạn chế đã phát hiện:** cắt theo số ký tự nên ranh giới rơi tùy ý vào giữa câu, thậm chí **giữa từ**. Đo tỷ lệ chunk bắt đầu từ giữa một câu: `doi-tra-bao-hanh` 10/17, `thoa-thuan-mxh` 46/59, `payment-options` 2/3 — tức **hơn 75% ranh giới cắt ngang câu**. Ví dụ thực tế trong `doi-tra-bao-hanh`: một chunk mở đầu bằng `"àn hình máy tính, Máy tính bảng…"` (đứt giữa từ "Màn"), một chunk khác bắt đầu bằng `"o hành quá 15 ngày hoặc phải bảo hành lại sản phẩm…"` — vế điều kiện bị tách khỏi vế hệ quả "được áp dụng Hư gì đổi nấy hoặc Hoàn tiền với mức phí giảm 50%". Overlap 50 ký tự quá ngắn so với câu chính sách trung bình (~100–150 ký tự) nên không cứu được các trường hợp này.
+- **Code snippet (nếu custom):**
+```python
+# src/trang/chunking.py — dùng logic mặc định, không tùy biến
+step = self.chunk_size - self.overlap          # 500 - 50 = 450
+for start in range(0, len(text), step):
+    chunks.append(text[start : start + self.chunk_size])
+    if start + self.chunk_size >= len(text):
+        break                                  # đã lấy hết phần đuôi
+```
+
+**Thành viên 5 — [Lê Thị Trúc Linh]**
+- **Loại chiến lược:** RecursiveChunker (`chunk_size=800`, separators mặc định `["\n\n", "\n", ". ", " ", ""]`)
+- **Mô tả & lý do chọn cho chủ đề này:** Dùng chung chunker với Thành viên 1 nhưng **cửa sổ lớn hơn gấp gần 3 lần (800 so với 300)**, tạo thành một **so sánh có kiểm soát**: giữ nguyên thuật toán, chỉ đổi kích thước, để đo riêng ảnh hưởng của `chunk_size` tách khỏi ảnh hưởng của chiến lược. Lý do chọn cửa sổ lớn: trong chính sách đổi trả, phần **"Điều kiện áp dụng" nằm tách bên dưới** khối quy định mức phí (mục 1.2 và 1.3 đều theo cấu trúc *quy định → danh sách điều kiện*). Cửa sổ 300 ký tự thường không đủ chứa cả cụm, khiến chunk trả về chỉ có mức phí mà thiếu điều kiện đi kèm; cửa sổ 800 giữ trọn được cả cụm điều khoản trong một chunk.
+- **Kết quả đo trên corpus thật:** `doi-tra-bao-hanh` 15 chunk (TB 514 ký tự) · `thoa-thuan-mxh` 59 chunk (TB 454 ký tự) · `payment-options` 3 chunk (TB 484 ký tự).
+- **So sánh trực tiếp với `chunk_size=300` của Thành viên 1** (cùng `RecursiveChunker`, cùng tài liệu):
+
+  | chunk_size | thoa-thuan-mxh | Chunk vụn (<40 ký tự) | doi-tra-bao-hanh |
+  |---|---|---|---|
+  | 300 | 157 chunk, TB 170 | **27** | 44 chunk, TB 175 |
+  | 800 | 59 chunk, TB 454 | **4** | 15 chunk, TB 514 |
+
+  Cửa sổ 300 sinh ra 27 mảnh vụn dưới 40 ký tự trên `thoa-thuan-mxh` — phần lớn là các dòng tiêu đề `### Điều …` và số thứ tự danh sách bị tách riêng thành chunk độc lập. Những mảnh này gần như vô dụng khi truy xuất vì không mang nội dung quy định, nhưng vẫn chiếm chỗ trong vector store và có thể lọt vào top-k. Cửa sổ 800 giảm còn 4 mảnh.
+- **Đánh đổi:** chunk lớn làm embedding "loãng" hơn — một vector phải đại diện cho nhiều ý, nên với câu hỏi rất hẹp (ví dụ "hoàn tiền cà thẻ mấy ngày?") điểm tương đồng có thể thấp hơn so với chunk nhỏ đúng trọng tâm. Đây chính là giả thuyết nhóm sẽ kiểm chứng bằng 5 câu hỏi đánh giá.
+- **Code snippet (nếu custom):**
+```python
+# src/linh/chunking.py — dùng logic đệ quy mặc định, chỉ đổi chunk_size
+chunker = RecursiveChunker(chunk_size=800)   # thay vì 500 mặc định / 300 của TV1
+# _split() thử lần lượt "\n\n" → "\n" → ". " → " " → ""
+# và chỉ xuống mức tách nhỏ hơn khi đoạn hiện tại vẫn vượt chunk_size
+```
 
 ### So Sánh Giữa Các Thành Viên
 
