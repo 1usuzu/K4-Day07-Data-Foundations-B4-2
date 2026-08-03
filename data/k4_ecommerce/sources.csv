@@ -1,3 +1,7 @@
 doc_id,file_path,title,source_url,retrieved_at,document_version,license_or_permission
 k4-returns-policy,data/k4_ecommerce/returns-policy.md,Chính sách đổi trả,https://example.com/chinh-sach/doi-tra,2026-08-02,2026.1,example-template-replace-me
 k4-seller-listing,data/k4_ecommerce/seller-listing.md,Quy định đăng bán,https://example.com/nguoi-ban/dang-ban,2026-08-02,2026.1,example-template-replace-me
+k4-tgdd-doi-tra-bao-hanh,data/k4_ecommerce/k4-tgdd-doi-tra-bao-hanh.md,Chính sách đổi trả (Thegioididong),https://www.thegioididong.com/chinh-sach-bao-hanh-san-pham,2026-08-03,2024-10-11,public-page
+k4-tgdd-du-lieu-ca-nhan,data/k4_ecommerce/k4-tgdd-du-lieu-ca-nhan.md,Chính sách xử lý dữ liệu cá nhân,https://www.thegioididong.com/chinh-sach-xu-ly-du-lieu-ca-nhan,2026-08-03,2026-01-01,public-page
+k4-tgdd-noi-quy-cua-hang,data/k4_ecommerce/k4-tgdd-noi-quy-cua-hang.md,Nội quy cửa hàng,https://www.thegioididong.com/noi-quy-cua-hang,2026-08-03,2014-06-01,public-page
+k4-tgdd-thoa-thuan-mxh,data/k4_ecommerce/k4-tgdd-thoa-thuan-mxh.md,Thỏa thuận sử dụng trang mạng xã hội,https://www.thegioididong.com/thoa-thuan-su-dung-trang-mxh,2026-08-03,not-stated,public-page
