@@ -1,7 +1,12 @@
 # Báo Cáo Nhóm — Lab 7: Embedding & Vector Store
 
 **Nhóm:** B4.2
-**Thành viên:** Lưu Xuân Dũng, Ngô Lưu Quốc Đạt, Nguyễn Phương Thùy, Nguyễn Thị Huyền Trang, Lê Thị Trúc Linh
+**Thành viên:**
+- Lưu Xuân Dũng (MSSV: 2A202601774)
+- Ngô Lưu Quốc Đạt (MSSV: 2A202602014)
+- Nguyễn Phương Thùy (MSSV: 2A202601953)
+- Nguyễn Thị Huyền Trang (MSSV: 2A202601960)
+- Lê Thị Trúc Linh (MSSV: 2A202601322)
 **Ngày:** 03-08-2026
 
 > **Nộp 1 bản / nhóm.** Phần cá nhân (hướng tiếp cận, kết quả riêng, dự đoán…) mỗi thành viên nộp riêng trong `REPORT_CANHAN.md`. Chi tiết thang điểm: `docs/SCORING.md`.
@@ -181,7 +186,7 @@ chunker = RecursiveChunker(chunk_size=800)   # thay vì 500 mặc định / 300 
 | | | | | |
 
 **Chiến lược nào tốt nhất cho chủ đề này? Tại sao?**
-> *Viết 2-3 câu — đây là phần được đánh giá cao nhất (khả năng suy nghĩ & giải thích):*
+> Chiến lược **SentenceChunker có overlap (của Thùy)** tỏ ra hiệu quả nhất cho chủ đề chính sách thương mại. Lý do là các quy định thường gồm 2 câu đi liền nhau (Quy định chung + Ngoại lệ/Lưu ý). Việc cắt theo ranh giới câu kết hợp với overlap 1 câu giúp bảo toàn trọn vẹn ngữ nghĩa của cặp câu này trong cùng một chunk, khiến Agent không bị thiếu thông tin khi trả lời các câu hỏi hóc búa.
 
 ---
 
@@ -205,27 +210,28 @@ chunker = RecursiveChunker(chunk_size=800)   # thay vì 500 mặc định / 300 
 
 | # | Câu hỏi | Chiến lược tốt nhất cho câu này | Có chunk liên quan trong top-3? | Ghi chú |
 |---|---------|-------------------------------|-------------------------------|---------|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
-| 4 | | | | |
-| 5 | | | | |
+| 1 | Đổi trả đt lỗi... | SentenceChunker (overlap) | Có (Top 1) | Lấy đủ ý sạc dự phòng + hàng khuyến mãi. Điểm: 2 |
+| 2 | Hoàn tiền cà thẻ... | FixedSizeChunker | Có (Top 1) | Văn bản ngắn, cắt kiểu gì cũng trúng. Điểm: 2 |
+| 3 | Mất hộp thu phí... | RecursiveChunker (300) | Có (Top 2) | Lấy được mức thu phí 2% nhưng thiếu ý tối đa 5%. Điểm: 1 |
+| 4 | Đăng nội dung chiến sự... | SentenceChunker (overlap) | Có (Top 1) | Bắt được chuẩn xác Điều 2 (cấm tuyên truyền chiến tranh). Điểm: 2 |
+| 5 | Dữ liệu cá nhân... | RecursiveChunker (800) | Có (Top 1) | Chunk lớn giúp gom đủ cả mục đích và cam kết chia sẻ. Điểm: 2 |
 
 **Lọc bằng metadata có giúp ích không? Ở câu hỏi nào?**
-> *Viết 2-3 câu:*
+> Có, vô cùng hữu ích ở **Câu 1** và **Câu 5**. Ở câu 1, lọc `customer_role: buyer` giúp loại bỏ các chính sách đổi trả dành cho đối tác. Ở câu 5, lọc `category: privacy` giúp Agent tập trung vào "Chính sách xử lý dữ liệu cá nhân" thay vì bị nhiễu bởi các quy định bảo mật bên "Thỏa thuận mạng xã hội".
 
 ---
 
 ## 4. Thuyết trình (Demo) & Bài học nhóm — Nhóm (5 điểm)
 
 **Những phân tích (insights) hay nhất nhóm sẽ trình bày:**
-> *Liệt kê 2-3 ý:*
+- Sự chênh lệch độ dài của corpus (có file >26.000 ký tự, có file <1.500 ký tự) đòi hỏi chiến lược chia đoạn linh hoạt, không thể dùng 1 size cố định.
+- Đối với văn bản pháp lý/chính sách, ranh giới ngữ nghĩa (dấu chấm câu, ngắt đoạn) quan trọng hơn số lượng ký tự. Cắt giữa câu sẽ làm hỏng kết quả của LLM.
 
 **Bài học rút ra khi so sánh trong nhóm:**
-> *Viết 2-3 câu — cùng tài liệu nhưng chiến lược khác nhau dẫn tới khác biệt gì?*
+- Cùng một bộ tài liệu, nhưng chiến lược thêm **Overlap** giúp LLM trả lời "người lớn" và chặt chẽ hơn hẳn so với việc không có overlap, dù tốn thêm không gian lưu trữ. Kích thước chunk lớn (800) đôi khi bị loãng ngữ nghĩa so với chunk nhỏ (300) nếu câu hỏi quá hẹp.
 
 **Nếu làm lại, nhóm sẽ thay đổi gì trong chiến lược dữ liệu (data strategy)?**
-> *Viết 2-3 câu:*
+- Nhóm sẽ tiến hành làm sạch dữ liệu (Data Cleaning) kỹ hơn: loại bỏ các số thứ tự lửng lơ ở đầu dòng để tránh làm rối regex của SentenceChunker. Đồng thời, chia các file quá lớn thành nhiều file nhỏ theo từng Chương để gắn Metadata chuẩn xác hơn.
 
 ---
 
@@ -233,8 +239,8 @@ chunker = RecursiveChunker(chunk_size=800)   # thay vì 500 mặc định / 300 
 
 | Tiêu chí | Điểm tự đánh giá |
 |----------|-------------------|
-| Lựa chọn tài liệu (Document Set Quality) | / 10 |
-| Thiết kế chiến lược (Strategy Design) | / 15 |
-| Chất lượng truy xuất (Retrieval Quality) | / 10 |
-| Thuyết trình (Demo) | / 5 |
-| **Tổng phần nhóm** | **/ 40** |
+| Lựa chọn tài liệu (Document Set Quality) | 10 / 10 |
+| Thiết kế chiến lược (Strategy Design) | 15 / 15 |
+| Chất lượng truy xuất (Retrieval Quality) | 10 / 10 |
+| Thuyết trình (Demo) | 5 / 5 |
+| **Tổng phần nhóm** | **40 / 40** |

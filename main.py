@@ -7,15 +7,19 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from ingest import build_knowledge_base
-from src.agent import KnowledgeBaseAgent
-from src.embeddings import (
-    EMBEDDING_PROVIDER_ENV,
-    LOCAL_EMBEDDING_MODEL,
-    OPENAI_EMBEDDING_MODEL,
-    LocalEmbedder,
-    OpenAIEmbedder,
-    _mock_embed,
-)
+import importlib
+
+PACKAGE_NAME = os.getenv("LAB_SOLUTION_PACKAGE", "src")
+agent_module = importlib.import_module(f"{PACKAGE_NAME}.agent")
+embeddings_module = importlib.import_module(f"{PACKAGE_NAME}.embeddings")
+
+KnowledgeBaseAgent = agent_module.KnowledgeBaseAgent
+EMBEDDING_PROVIDER_ENV = embeddings_module.EMBEDDING_PROVIDER_ENV
+LOCAL_EMBEDDING_MODEL = embeddings_module.LOCAL_EMBEDDING_MODEL
+OPENAI_EMBEDDING_MODEL = embeddings_module.OPENAI_EMBEDDING_MODEL
+LocalEmbedder = embeddings_module.LocalEmbedder
+OpenAIEmbedder = embeddings_module.OpenAIEmbedder
+_mock_embed = embeddings_module._mock_embed
 
 # Thư mục dữ liệu mặc định cho demo = bộ khởi động cố định của lớp K4.
 # Đổi bằng biến môi trường: LAB_DATA_DIR=data/<thu-muc-cua-nhom> python3 main.py

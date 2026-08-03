@@ -28,9 +28,17 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from src.chunking import FixedSizeChunker
-from src.models import Document
-from src.store import EmbeddingStore
+import os
+import importlib
+
+PACKAGE_NAME = os.getenv("LAB_SOLUTION_PACKAGE", "src")
+chunking = importlib.import_module(f"{PACKAGE_NAME}.chunking")
+models = importlib.import_module(f"{PACKAGE_NAME}.models")
+store_module = importlib.import_module(f"{PACKAGE_NAME}.store")
+
+FixedSizeChunker = chunking.FixedSizeChunker
+Document = models.Document
+EmbeddingStore = store_module.EmbeddingStore
 
 TEXT_EXTENSIONS = {".md", ".txt"}
 
