@@ -179,14 +179,24 @@ chunker = RecursiveChunker(chunk_size=800)   # thay vì 500 mặc định / 300 
 
 ### So Sánh Giữa Các Thành Viên
 
-| Thành viên | Chiến lược (Strategy) | Điểm truy xuất (/10) | Điểm mạnh | Điểm yếu |
-|-----------|----------|----------------------|-----------|----------|
-| | | | | |
-| | | | | |
-| | | | | |
+Chạy 5 câu hỏi đánh giá của nhóm trên cùng corpus, cùng embedder `text-embedding-3-small` (OpenAI), `top_k=3`, chỉ khác chiến lược chia chunk. Điểm dưới đây **chỉ chấm phần truy xuất**: 2đ nếu chunk chứa gold answer ở hạng 1, 1đ nếu nằm hạng 2–3, 0đ nếu không có trong top-3.
+
+| Thành viên | Chiến lược (Strategy) | Số chunk | Điểm truy xuất (/10) | Điểm mạnh | Điểm yếu |
+|-----------|----------|---------|----------------------|-----------|----------|
+| Lê Thị Trúc Linh | RecursiveChunker (800) | 105 | **5** | Cao điểm nhất. Chunk lớn giữ trọn cụm *quy định + điều kiện áp dụng*, nên là chiến lược duy nhất lấy được chunk Điều 2 của thỏa thuận MXH ở câu 4. Ít chunk nhất (105) → rẻ nhất khi embedding. | Chunk lớn làm vector "loãng", câu 5 (hỏi 2 ý ở 2 tài liệu) không lọt top-3. |
+| Ngô Lưu Quốc Đạt | SentenceChunker (3 câu) | 143 | 4 | Chunk luôn trọn câu nên đọc ra là hiểu, không cần ghép mảnh. Câu 5 đạt hạng 2 — tốt nhất nhóm ở câu này. | Câu 3 chỉ đạt hạng 3. Ranh giới 3 câu cắt rời cụm *quy định ↔ điều kiện*. |
+| Nguyễn Phương Thùy | SentenceChunker (3 câu, overlap 1) | 209 | 4 | Overlap giúp câu 5 vẫn vào top-3 dù hỏi 2 ý. Bao phủ ranh giới tốt hơn bản không overlap. | Tăng 46% số chunk so với TV2 nhưng **không tăng điểm** — chi phí embedding cao hơn mà hiệu quả ngang bằng. |
+| Nguyễn Thị Huyền Trang | FixedSizeChunker (500, overlap 50) | 118 | 4 | Bất ngờ ngang điểm hai chiến lược ngữ nghĩa. Câu 3 đạt hạng 1 nhờ chunk 500 ký tự chứa trọn danh sách phí. | Hơn 75% ranh giới cắt ngang câu, có chỗ đứt giữa từ. Câu 4 và 5 đều trượt top-3. |
+| Lưu Xuân Dũng | RecursiveChunker (300) | 293 | 2 | Chunk nhỏ, đúng trọng tâm khi câu hỏi rất hẹp (câu 2 đạt hạng 1). | **Thấp nhất.** 293 chunk, trong đó nhiều mảnh vụn <40 ký tự (tiêu đề, số thứ tự) chiếm chỗ trong top-3 và đẩy chunk có nội dung ra ngoài. 4/5 câu trượt. |
 
 **Chiến lược nào tốt nhất cho chủ đề này? Tại sao?**
-> Chiến lược **SentenceChunker có overlap (của Thùy)** tỏ ra hiệu quả nhất cho chủ đề chính sách thương mại. Lý do là các quy định thường gồm 2 câu đi liền nhau (Quy định chung + Ngoại lệ/Lưu ý). Việc cắt theo ranh giới câu kết hợp với overlap 1 câu giúp bảo toàn trọn vẹn ngữ nghĩa của cặp câu này trong cùng một chunk, khiến Agent không bị thiếu thông tin khi trả lời các câu hỏi hóc búa.
+> **RecursiveChunker với `chunk_size` lớn (800) là tốt nhất cho chủ đề chính sách TMĐT** — 5/10 điểm, đồng thời rẻ nhất khi embedding (105 chunk, chỉ bằng 1/3 của cấu hình 300). Nhưng kết luận quan trọng hơn con số xếp hạng là: **kích thước chunk quyết định nhiều hơn thuật toán cắt**. Bằng chứng là cặp đối chứng có kiểm soát Dũng–Linh: cùng `RecursiveChunker`, cùng separators, chỉ đổi 300 → 800 mà điểm nhảy từ 2 lên 5; trong khi ba chiến lược *khác thuật toán* nhưng có chunk cỡ trung bình tương đương (Sentence 320–410 ký tự, Fixed 500) lại dồn cụm ở đúng 4 điểm.
+>
+> Lý do nằm ở cấu trúc của văn bản chính sách: các điều khoản luôn viết theo dạng **quy định → danh sách "Điều kiện áp dụng" tách bên dưới** (mục 1.2, 1.3 của chính sách đổi trả). Cửa sổ hẹp cắt rời hai vế này nên chunk truy được chỉ có mức phí mà mất điều kiện; cửa sổ 300 còn sinh 27 mảnh vụn dưới 40 ký tự (tiêu đề `### Điều …`, số thứ tự) chen vào top-3 và đẩy chunk có nội dung ra ngoài. Chunk lớn giữ trọn cụm điều khoản nên thắng ở câu 4 — câu duy nhất cần cả phạm vi cho phép lẫn danh mục nội dung cấm.
+>
+> **Hai kết quả đi ngược trực giác, đáng chú ý nhất:** (a) overlap **không đáng tiền** ở corpus này — cấu hình của Thùy tốn thêm 46% chunk so với Đạt mà điểm y hệt (4/10), vì overlap chỉ cứu được ranh giới giữa 2 câu liền kề, trong khi lỗi thật lại là cụm *quy định + điều kiện* cách nhau tới 5–7 câu; (b) `FixedSizeChunker` — chiến lược "ngây thơ" nhất — vẫn ngang điểm hai chiến lược cắt theo ngữ nghĩa, cho thấy với embedding đủ tốt thì việc chunk có trọn câu hay không ít quan trọng hơn việc chunk có **chứa đủ thông tin** để trả lời hay không.
+>
+> *Giới hạn của kết luận:* chỉ 5 câu hỏi nên chênh lệch 1 điểm nằm trong sai số — khi chạy lại, cấu hình của Thùy dao động giữa 4 và 5 do hai chunk ở hạng 3–4 chênh nhau chưa tới 0,001 điểm tương đồng. Khoảng cách đáng tin duy nhất là 5 so với 2 (Linh so với Dũng). Ngoài ra điểm này chỉ đo phần truy xuất, chưa chấm độ chính xác câu trả lời của agent.
 
 ---
 
