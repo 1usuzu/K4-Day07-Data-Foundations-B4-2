@@ -108,7 +108,13 @@ def robots_allowed(url: str, user_agent: str) -> bool:
     robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
     parser = RobotFileParser(robots_url)
     try:
-        parser.read()
+        # Read robots.txt with the same declared User-Agent used for pages: some
+        # sites reject urllib's default agent and the rules would look stricter
+        # than the ones actually published for us.
+        request = Request(robots_url, headers={"User-Agent": user_agent})
+        with urlopen(request, timeout=20) as response:  # noqa: S310 - host comes from the requested URL.
+            charset = response.headers.get_content_charset() or "utf-8"
+            parser.parse(response.read().decode(charset, errors="replace").splitlines())
     except (HTTPError, URLError, OSError) as error:
         print(f"Skipping {url}: cannot verify {robots_url} ({error})", file=sys.stderr)
         return False
@@ -216,7 +222,7 @@ def main() -> int:
                 raise FileExistsError(f"{output_path} exists (use --overwrite to replace it)")
             output_path.write_text(markdown_document(metadata, content), encoding="utf-8")
             manifest[metadata["doc_id"]] = {
-                "doc_id": metadata["doc_id"], "file_path": str(output_path), "title": metadata["title"],
+                "doc_id": metadata["doc_id"], "file_path": output_path.as_posix(), "title": metadata["title"],
                 "source_url": metadata["source_url"], "retrieved_at": metadata["retrieved_at"],
                 "document_version": metadata["document_version"],
                 "license_or_permission": row.get("license_or_permission") or "public-source",
