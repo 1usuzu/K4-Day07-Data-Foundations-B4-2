@@ -70,20 +70,21 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 
 | Tài liệu | Chiến lược (Strategy) | Số lượng Chunk | Độ dài trung bình | Giữ được ngữ cảnh không? |
 |-----------|----------|-------------|------------|-------------------|
-| | FixedSizeChunker (`fixed_size`) | | | |
-| | SentenceChunker (`by_sentences`) | | | |
-| | RecursiveChunker (`recursive`) | | | |
+| payment-options.md | FixedSizeChunker (`fixed_size`) | 7 | 286 ký tự | Cắt khá cứng, đôi lúc cắt đôi câu khiến ngữ cảnh bị đứt đoạn. |
+| payment-options.md | SentenceChunker (`by_sentences`) | 5 | 338 ký tự | Giữ ngữ cảnh tốt nhất vì cắt theo đúng dấu chấm câu. |
+| payment-options.md | RecursiveChunker (`recursive`) | 9 | 187 ký tự | Chunk chia nhỏ hơn, bám theo đoạn/heading, thích hợp tra cứu chi tiết. |
 
 ### Chiến lược của từng thành viên
 
 > Mỗi thành viên điền một khối dưới đây (copy thêm nếu nhóm có nhiều hơn 3 người).
 
-**Thành viên 1 — [Tên]**
-- **Loại chiến lược:** [FixedSize / Sentence / Recursive / custom]
-- **Mô tả & lý do chọn cho chủ đề này:** *(2-3 câu)*
+**Thành viên 1 — Lưu Xuân Dũng**
+- **Loại chiến lược:** RecursiveChunker (chunk_size=300)
+- **Mô tả & lý do chọn cho chủ đề này:** Chọn Recursive vì văn bản chính sách thương mại thường phân cấp theo Heading và các gạch đầu dòng rõ ràng. Việc đệ quy chia theo đoạn và câu giúp bóc tách từng điều khoản tách bạch mà không bị gãy ngữ cảnh.
 - **Code snippet (nếu custom):**
 ```python
-# Dán mã nguồn (implementation) vào đây
+# Sử dụng logic mặc định trong src/dung/chunking.py 
+# overlap = 50, max_sentences_per_chunk = 5
 ```
 
 **Thành viên 2 — [Tên]**
